@@ -1,10 +1,4 @@
-// ============================================================
-//  Port Environment – Step 1: Project Skeleton
-//  Compile (macOS):
-//    g++ main.cpp -o port -framework OpenGL -framework GLUT
-//  Compile (Linux with freeglut):
-//    g++ main.cpp -o port -lGL -lGLU -lglut
-// ============================================================
+
 
 #ifdef __APPLE__
   #include <GLUT/glut.h>
@@ -19,9 +13,7 @@
 #include <cstdio>
 #include <ctime>
 
-// ------------------------------------------------------------------
-// Global animation time (updated by idle)
-// ------------------------------------------------------------------
+
 static float gTime = 0.0f;
 static float gWaveAmp = 1.4f;
 static float gWaveFreq = 0.1f;
@@ -74,11 +66,13 @@ static const int gBirdCount = 12;
 static Bird gBirds[gBirdCount];
 static int gBirdStyle = BIRD_STYLE_SEAGULL;
 
+// Returns a random float in the inclusive min/max range.
 static float frandRange(float minVal, float maxVal)
 {
     return minVal + (maxVal - minVal) * (static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
 }
 
+// Spawns a new bird flock off-screen on the left with varied offsets and velocity.
 static void spawnBirdFlockFromLeft()
 {
     float centerY = frandRange(12.0f, 23.0f);
@@ -95,11 +89,13 @@ static void spawnBirdFlockFromLeft()
     }
 }
 
+// Initializes bird state at startup.
 static void initBirds()
 {
     spawnBirdFlockFromLeft();
 }
 
+// Loads an uncompressed 24-bit BMP file into RGB pixel data.
 static bool loadBMP24(const char* path, int& width, int& height, unsigned char*& outData)
 {
     FILE* f = fopen(path, "rb");
@@ -149,6 +145,7 @@ static bool loadBMP24(const char* path, int& width, int& height, unsigned char*&
     return true;
 }
 
+// Creates an OpenGL texture from a BMP file and builds mipmaps.
 static bool loadTextureFromBMP(const char* path, GLuint& texId)
 {
     int w = 0, h = 0;
@@ -169,6 +166,7 @@ static bool loadTextureFromBMP(const char* path, GLuint& texId)
     return true;
 }
 
+// Tries to load optional textures and falls back gracefully if missing.
 static void tryLoadOptionalTextures()
 {
     if (loadTextureFromBMP("sea.bmp", gSeaTex))
@@ -182,6 +180,7 @@ static void tryLoadOptionalTextures()
     }
 }
 
+// Builds reusable display lists for static meshes in the scene.
 static void buildDisplayLists()
 {
     gGroundList = glGenLists(1);
@@ -318,16 +317,7 @@ static Boat gBoats[] = {
 };
 static const int gBoatCount = sizeof(gBoats) / sizeof(gBoats[0]);
 
-// ------------------------------------------------------------------
-// drawRealisticBird  –  seagull silhouette visible at distance
-//
-//  Bird faces +Z (forward). All geometry is in the XZ plane (Y=0)
-//  so it reads as a top-down silhouette from the elevated camera.
-//  Wing span is ~4 world units so it is clearly visible.
-//
-//  flap  : wing-tip lift in world units (positive = up)
-//  scale : uniform size multiplier (pass 1.0 normally)
-// ------------------------------------------------------------------
+// Draws one articulated bird mesh using the current transform and flap angle.
 static void drawRealisticBird(float flapAngleDeg, float scale)
 {
     // Volumetric bird made of compact primitives for a smooth 3D look.
@@ -391,9 +381,7 @@ static void drawRealisticBird(float flapAngleDeg, float scale)
     }
 }
 
-// ------------------------------------------------------------------
-// reshape – called whenever the window is resized
-// ------------------------------------------------------------------
+// Updates viewport and projection matrix after window resize.
 void reshape(int w, int h)
 {
     if (h == 0) h = 1;                      // avoid division by zero
@@ -413,9 +401,7 @@ void reshape(int w, int h)
     glLoadIdentity();
 }
 
-// ------------------------------------------------------------------
-// display – main render callback
-// ------------------------------------------------------------------
+// Renders one full frame of the port environment.
 void display()
 {
     // Clear colour + depth buffers
@@ -439,7 +425,7 @@ void display()
     if (gShowGround && gGroundList)
         glCallList(gGroundList);
 
-    // ---- Animated water grid (Step 3) ------------------------------
+    // ---- Animated water grid ------------------------------
     if (gShowWater)
     {
         glPushMatrix();
@@ -486,7 +472,7 @@ void display()
         glPopMatrix();
     }
 
-    // ---- Lighthouse (Step 4) ---------------------------------------
+    // ---- Lighthouse ---------------------------------------
     if (gShowLighthouse)
     {
         glPushMatrix();
@@ -511,7 +497,7 @@ void display()
         glPopMatrix();
     }
 
-    // ---- Boats floating on waves (Step 5) --------------------------
+    // ---- Boats floating on waves --------------------------
     if (gShowBoats)
     {
         for (int i = 0; i < gBoatCount; ++i)
@@ -555,7 +541,7 @@ void display()
         }
     }
 
-    // ---- Birds (Step 6) --------------------------------------------
+    // ---- Birds --------------------------------------------
     if (gShowBirds)
     {
         // Keep birds unlit for silhouette clarity.
@@ -604,9 +590,7 @@ void display()
     glutSwapBuffers();
 }
 
-// ------------------------------------------------------------------
-// idle – called when no other events are pending
-// ------------------------------------------------------------------
+// Advances animation state, flocking logic, and requests a redraw.
 void idle()
 {
     gTime += 0.02f;           // wave animation phase step
@@ -635,7 +619,7 @@ void idle()
         }
     }
 
-    // Step 6: flocking birds (separation + alignment + cohesion)
+    //flocking birds (separation + alignment + cohesion)
     float neighborRadius = 13.0f;
     float separationRadius = 4.0f;
     float sepWeight = 0.020f;
@@ -784,9 +768,7 @@ void idle()
     glutPostRedisplay();      // trigger a new display() call
 }
 
-// ------------------------------------------------------------------
-// keyboard – press ESC or 'q' to quit
-// ------------------------------------------------------------------
+// Handles keyboard controls for camera, toggles, flock style, and exit.
 void keyboard(unsigned char key, int /*x*/, int /*y*/)
 {
     if (key == 27 || key == 'q' || key == 'Q')   // ESC or Q
@@ -828,9 +810,7 @@ void keyboard(unsigned char key, int /*x*/, int /*y*/)
     glutPostRedisplay();
 }
 
-// ------------------------------------------------------------------
-// main
-// ------------------------------------------------------------------
+// Initializes GLUT/OpenGL state, registers callbacks, and starts the main loop.
 int main(int argc, char** argv)
 {
     srand(static_cast<unsigned int>(time(nullptr)));
